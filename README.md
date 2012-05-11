@@ -1,7 +1,7 @@
 High Score Library
 ===============
 
-Forked from [dzimboum's implementation](https://github.com/dzimboum/triscalino/) to work with the Adafruit RGB LCD Shield
+Forked from [dzimboum's implementation](https://github.com/dzimboum/DeuligneHiScores/) to work with the Adafruit RGB LCD Shield
 
 Requirements
 ------------
