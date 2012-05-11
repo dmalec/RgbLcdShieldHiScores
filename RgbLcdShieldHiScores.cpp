@@ -1,26 +1,46 @@
 /*
- * DeuligneHiScores.cpp - DeuligneHiScores library
+ * RgbLcdShieldHiScores.cpp - RgbLcdShieldHiScores library
  * Copyright 2012 dzimboum.  All rights reserved
  *
  * Released under the WTFPL 2.0 license
  * http://sam.zoy.org/wtfpl/COPYING
  *
+ * Ported by Dan Malec to work with the Adafruit RGB LCD Shield
+ * - Renamed to RgbLcdShieldHiScores
+ * - Changed type of lcd_ (and related includes) to Adafruit_RGBLCDShield
+ * - Changed button logic to work with Adafruit Shield
+ * - Changed references from Snootlab Deuligne to Adafruit RGB LCD Shield
+ *
  * This library is designed to help storing game scores
- * on EEPROM.  It uses a Deuligne LCD display, shipped
- * by Snootlab.
+ * on EEPROM.
+ * It uses an:
+ *      Adafruit RGB LCD Shield Kit:
+ *      http://www.adafruit.com/products/716
+ * or
+ *      Adafruit Negative RGB LCD Shield Kit
+ *      http://www.adafruit.com/products/714
+ *
+ * ********************************************************************************
+ * Dependencies
+ * ********************************************************************************
+ * Adafruit Industries's RGB 16x2 LCD Shield library:
+ *       https://github.com/adafruit/Adafruit-RGB-LCD-Shield-Library
+ * Adafruit Industries's MCP23017 I2C Port Expander library:
+ *       https://github.com/adafruit/Adafruit-MCP23017-Arduino-Library
+ * ********************************************************************************
  */
 
-#include <Deuligne.h>
+#include <Adafruit_RGBLCDShield.h>
 #include <EEPROM.h>
 
 #include <inttypes.h>
 
-#include "DeuligneHiScores.h"
+#include "RgbLcdShieldHiScores.h"
  
-#define DEULIGNEHISCORES_DEBUG
-#undef DEULIGNEHISCORES_DEBUG
+#define RGBLCDSHIELDHISCORES_DEBUG
+#undef RGBLCDSHIELDHISCORES_DEBUG
 
-DeuligneHiScores::DeuligneHiScores(Deuligne &lcd)
+RgbLcdShieldHiScores::RgbLcdShieldHiScores(Adafruit_RGBLCDShield &lcd)
   : lcd_(lcd)
 {
 }
@@ -32,7 +52,7 @@ DeuligneHiScores::DeuligneHiScores(Deuligne &lcd)
  *        overwrite existing data.
  */
 void
-DeuligneHiScores::begin(unsigned int number, unsigned int address, unsigned int magic)
+RgbLcdShieldHiScores::begin(unsigned int number, unsigned int address, unsigned int magic)
 {
   number_  = number;
   address_ = address;
@@ -60,7 +80,7 @@ DeuligneHiScores::begin(unsigned int number, unsigned int address, unsigned int 
   ++address;
   uint8_t b1 = EEPROM.read(address);
   ++address;
-#ifdef DEULIGNEHISCORES_DEBUG
+#ifdef RGBLCDSHIELDHISCORES_DEBUG
   Serial.print("Reading bytes at address ");
   Serial.println(address_);
   Serial.print((int) b0);
@@ -69,7 +89,7 @@ DeuligneHiScores::begin(unsigned int number, unsigned int address, unsigned int 
 #endif
   if (b0 == byteH && b1 == byteL)
   {
-#ifdef DEULIGNEHISCORES_DEBUG
+#ifdef RGBLCDSHIELDHISCORES_DEBUG
     Serial.println("Reading scores");
 #endif
     for (unsigned int i = 0; i < number_; ++i)
@@ -88,7 +108,7 @@ DeuligneHiScores::begin(unsigned int number, unsigned int address, unsigned int 
         this->scores[i].name[j] = EEPROM.read(address);
         ++address;
       }
-#ifdef DEULIGNEHISCORES_DEBUG
+#ifdef RGBLCDSHIELDHISCORES_DEBUG
       Serial.print(this->scores[i].value >> 4);
       Serial.print(" (");
       Serial.print((int) (this->scores[i].value & 0xf));
@@ -103,7 +123,7 @@ DeuligneHiScores::begin(unsigned int number, unsigned int address, unsigned int 
     b1 = EEPROM.read(address);
     ++address;
     validMagicNumber_ = (b0 == byteH && b1 == byteL);
-#ifdef DEULIGNEHISCORES_DEBUG
+#ifdef RGBLCDSHIELDHISCORES_DEBUG
     Serial.print("Valid trailing magic bytes? ");
     Serial.println(validMagicNumber_);
 #endif
@@ -111,7 +131,7 @@ DeuligneHiScores::begin(unsigned int number, unsigned int address, unsigned int 
   else if (b0 == 0xff && b1 == 0xff)
   {
     writeMagic_ = true;
-#ifdef DEULIGNEHISCORES_DEBUG
+#ifdef RGBLCDSHIELDHISCORES_DEBUG
     Serial.print("Empty region? ");
 #endif
     validMagicNumber_ = true; 
@@ -119,7 +139,7 @@ DeuligneHiScores::begin(unsigned int number, unsigned int address, unsigned int 
     {
       if (EEPROM.read(address + i) != 0xff) {
         validMagicNumber_ = false;
-#ifdef DEULIGNEHISCORES_DEBUG
+#ifdef RGBLCDSHIELDHISCORES_DEBUG
         Serial.println(validMagicNumber_);
         Serial.print("Data found at address ");
         Serial.println(address + i);
@@ -127,7 +147,7 @@ DeuligneHiScores::begin(unsigned int number, unsigned int address, unsigned int 
         break;
       }
     }
-#ifdef DEULIGNEHISCORES_DEBUG
+#ifdef RGBLCDSHIELDHISCORES_DEBUG
     if (validMagicNumber_) Serial.println(validMagicNumber_);
 #endif
   }
@@ -135,7 +155,7 @@ DeuligneHiScores::begin(unsigned int number, unsigned int address, unsigned int 
   {
     validMagicNumber_ = false; 
     writeMagic_ = true;
-#ifdef DEULIGNEHISCORES_DEBUG
+#ifdef RGBLCDSHIELDHISCORES_DEBUG
     Serial.print("Magic bytes mismatch, expected bytes are: ");
     Serial.print((int) byteH);
     Serial.print(' ');
@@ -148,7 +168,7 @@ DeuligneHiScores::begin(unsigned int number, unsigned int address, unsigned int 
 }
 
 void
-DeuligneHiScores::confirmOverwrite()
+RgbLcdShieldHiScores::confirmOverwrite()
 {
   int key = -1;
   int old_key = -1;
@@ -160,14 +180,14 @@ DeuligneHiScores::confirmOverwrite()
   lcd_.setCursor(0,1);
   lcd_.print("on EEPROM? No ");
   while (true) {
-    key = lcd_.get_key();
+    key = lcd_.readButtons();
     if (key != old_key) {
       delay(50);
-      key = lcd_.get_key();
+      key = lcd_.readButtons();
       if (key != old_key)
       {
         old_key = key;
-        if (key >= 0 && key <= 3) {
+        if (key && (BUTTON_RIGHT | BUTTON_LEFT | BUTTON_UP | BUTTON_DOWN)) {
           overwrite = !overwrite;
           lcd_.setCursor(11,1);
           if (overwrite) {
@@ -175,9 +195,9 @@ DeuligneHiScores::confirmOverwrite()
           } else {
             lcd_.print("No ");
           }
-        } else if (key == 4) {
+        } else if (key & BUTTON_SELECT) {
           validMagicNumber_ = overwrite;
-#ifdef DEULIGNEHISCORES_DEBUG
+#ifdef RGBLCDSHIELDHISCORES_DEBUG
           Serial.print("overwrite EEPROM? ");
           Serial.println(overwrite);
 #endif
@@ -195,7 +215,7 @@ DeuligneHiScores::confirmOverwrite()
  * Return value: true if this is a high score, false otherwise.
  */
 bool
-DeuligneHiScores::insert(unsigned long value, bool checkOnly)
+RgbLcdShieldHiScores::insert(unsigned long value, bool checkOnly)
 {
   value <<= 4;
   bool isBestScore = false;
@@ -205,7 +225,7 @@ DeuligneHiScores::insert(unsigned long value, bool checkOnly)
       break;
     }
   }
-#ifdef DEULIGNEHISCORES_DEBUG
+#ifdef RGBLCDSHIELDHISCORES_DEBUG
   Serial.print("Value is ");
   Serial.println(value);
   Serial.print("isBestScore? ");
@@ -238,7 +258,7 @@ DeuligneHiScores::insert(unsigned long value, bool checkOnly)
 }
 
 void
-DeuligneHiScores::enterName(int index)
+RgbLcdShieldHiScores::enterName(int index)
 {
   // variable is static to remember previous entered name
   static char name[3] = { 'A', 'A', 'A' };
@@ -256,27 +276,27 @@ DeuligneHiScores::enterName(int index)
   int key = -1;
   int old_key = -1;
   while (i < 3) {
-    key = lcd_.get_key();
+    key = lcd_.readButtons();
     if (key != old_key) {
       delay(50);
-      key = lcd_.get_key();
+      key = lcd_.readButtons();
       if (key != old_key)
       {
         old_key = key;
-        if (key == 0 || key == 4) {
+        if (key & BUTTON_RIGHT || key & BUTTON_SELECT) {
           ++i;
           lcd_.setCursor(5+i, 1);
-        } else if (key == 3) {
+        } else if (key & BUTTON_LEFT) {
           --i;
           if (i < 0) i = 0;
           lcd_.setCursor(5+i, 1);
-        } else if (key == 1) {
+        } else if (key & BUTTON_UP) {
           ++name[i];
           if (name[i] > 125) name[i] = 32;
           lcd_.setCursor(5+i, 1);
           lcd_.print(name[i]);
           lcd_.setCursor(5+i, 1);
-        } else if (key == 2) {
+        } else if (key & BUTTON_DOWN) {
           --name[i];
           if (name[i] < 32) name[i] = 125;
           lcd_.setCursor(5+i, 1);
@@ -293,7 +313,7 @@ DeuligneHiScores::enterName(int index)
 }
 
 void
-DeuligneHiScores::writeScore(int index)
+RgbLcdShieldHiScores::writeScore(int index)
 {
   if (writeMagic_) {
     // Avoid infinite recursion because writeScore is called below
@@ -311,32 +331,32 @@ DeuligneHiScores::writeScore(int index)
   }
   unsigned int address = address_ + 2 + index * 7;
   unsigned long value = this->scores[index].value;
-#ifdef DEULIGNEHISCORES_DEBUG
+#ifdef RGBLCDSHIELDHISCORES_DEBUG
   Serial.print("Write score at address ");
   Serial.println(address);
   Serial.print("Bytes for score: ");
 #endif
   for (int j = 0; j < 4; ++j)
   {
-#ifdef DEULIGNEHISCORES_DEBUG
+#ifdef RGBLCDSHIELDHISCORES_DEBUG
     Serial.print((int)(value & 0xff));
 #endif
     EEPROM.write(address+j, value & 0xff);
     value >>= 8;
   }
   address += 4;
-#ifdef DEULIGNEHISCORES_DEBUG
+#ifdef RGBLCDSHIELDHISCORES_DEBUG
   Serial.println();
   Serial.print("Name: ");
 #endif
   for (int j = 0; j < 3; ++j)
   {
-#ifdef DEULIGNEHISCORES_DEBUG
+#ifdef RGBLCDSHIELDHISCORES_DEBUG
     Serial.print(this->scores[index].name[j]);
 #endif
     EEPROM.write(address+j, this->scores[index].name[j]);
   }
-#ifdef DEULIGNEHISCORES_DEBUG
+#ifdef RGBLCDSHIELDHISCORES_DEBUG
   Serial.println();
 #endif
 }
@@ -348,7 +368,7 @@ DeuligneHiScores::writeScore(int index)
  * to sort less than 10 entries, it does not matter.
  */
 void
-DeuligneHiScores::display()
+RgbLcdShieldHiScores::display()
 {
   unsigned int displayed = 0;
   lcd_.clear();
@@ -383,7 +403,7 @@ DeuligneHiScores::display()
 }
 
 void
-DeuligneHiScores::reset()
+RgbLcdShieldHiScores::reset()
 {
   for (int i = 0; i < number_; ++i)
   {

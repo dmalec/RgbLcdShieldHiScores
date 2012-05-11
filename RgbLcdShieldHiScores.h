@@ -1,23 +1,43 @@
 /*
- * DeuligneHiScores.h - DeuligneHiScores library
+ * RgbLcdShieldHiScores.h - RgbLcdShieldHiScores library
  * Copyright 2012 dzimboum.  All rights reserved
  *
  * Released under the WTFPL 2.0 license
  * http://sam.zoy.org/wtfpl/COPYING
  *
+ * Ported by Dan Malec to work with the Adafruit RGB LCD Shield
+ * - Renamed to RgbLcdShieldHiScores
+ * - Changed type of lcd_ (and related includes) to Adafruit_RGBLCDShield
+ * - Changed button logic to work with Adafruit Shield
+ * - Changed references from Snootlab Deuligne to Adafruit RGB LCD Shield
+ *
  * This library is designed to help storing game scores
- * on EEPROM.  It uses a Deuligne LCD display, shipped
- * by Snootlab.
+ * on EEPROM.
+ * It uses an:
+ *      Adafruit RGB LCD Shield Kit:
+ *      http://www.adafruit.com/products/716
+ * or
+ *      Adafruit Negative RGB LCD Shield Kit
+ *      http://www.adafruit.com/products/714
+ *
+ * ********************************************************************************
+ * Dependencies
+ * ********************************************************************************
+ * Adafruit Industries's RGB 16x2 LCD Shield library:
+ *       https://github.com/adafruit/Adafruit-RGB-LCD-Shield-Library
+ * Adafruit Industries's MCP23017 I2C Port Expander library:
+ *       https://github.com/adafruit/Adafruit-MCP23017-Arduino-Library
+ * ********************************************************************************
  */
 
-#ifndef DEULIGNEHISCORES_H
-#define DEULIGNEHISCORES_H
+#ifndef RGBLCDSHIELDHISCORES_H
+#define RGBLCDSHIELDHISCORES_H
 
 #include "Arduino.h"
 
 #include <inttypes.h>
 
-class Deuligne;
+class Adafruit_RGBLCDShield;
 
 /*
  * As EEPROM supports only 100k writes, we want to minimize the
@@ -33,17 +53,17 @@ class Deuligne;
  * As the number of scores is small, scores also do not have to
  * be sorted in memory.
  */
-class DeuligneHiScore
+class RgbLcdShieldHiScore
 {
 public:
   unsigned long value;
   char name[3];
 };
 
-class DeuligneHiScores
+class RgbLcdShieldHiScores
 {
 public:
-  DeuligneHiScores(Deuligne &lcd);
+  RgbLcdShieldHiScores(Adafruit_RGBLCDShield &lcd);
   void begin(unsigned int number = 5, unsigned int address = 0, unsigned int magic = 0xC15E);
   // Insert score.  If return value is true, score has been inserted,
   // otherwise it was not a high score.
@@ -61,8 +81,8 @@ private:
   unsigned int number_;
   unsigned int address_;
   unsigned int magic_;
-  DeuligneHiScore scores[10];
-  Deuligne &lcd_;
+  RgbLcdShieldHiScore scores[10];
+  Adafruit_RGBLCDShield &lcd_;
 
   // In order to not overwrite important data, scores are written
   // only if the magic number has been found, or if the region
